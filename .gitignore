@@ -1,0 +1,8 @@
+.classpath
+.project
+.log*
+bin/
+out/
+testreport/
+
+.*.sw[nop]
