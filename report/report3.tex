@@ -144,12 +144,27 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 \begin{algorithm}
 	\begin{algorithmic}
 		\Procedure{KVMessage}{Socket sock, int timeout}
+			\State // ToDo: Exception-catch with KVException, see KVConstants
+			\State \texttt{sock.setSoTimeout(timeout)}
+			\State \texttt{in} $\leftarrow$ \texttt{sock.getInputStream}
+			\State // ToDo: some parse job\dots
 		\EndProcedure
 		\Procedure{KVMessage}{KVMessage kvm}
+			\State \texttt{msgType} $\leftarrow$ \texttt{kvm.msgType}
+			\State \texttt{key} $\leftarrow$ \texttt{kvm.key}
+			\State \texttt{value} $\leftarrow$ \texttt{kvm.value}
+			\State \texttt{message} $\leftarrow$ \texttt{kvm.message}
 		\EndProcedure
 		\Procedure{toXML}{}
+			\State // ToDo: generate XML representation for message\dots
 		\EndProcedure
 		\Procedure{sendMessage}{Socket sock}
+			\State // ToDo: Exception-catch with KVException, see KVConstants
+			\State \texttt{out} $\leftarrow$ \texttt{new ObjectOutputStream(sock.getOutputStream)}
+			\State \texttt{str} $\leftarrow$ \texttt{toXML()}
+			\State \texttt{out.writeObject(str)}
+			\State \texttt{out.flush}
+			\State \texttt{out.close}
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
