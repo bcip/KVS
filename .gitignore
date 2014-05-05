@@ -12,5 +12,6 @@ testreport/
 *.pdf
 *.log
 *.out
+*.*~
 
 !*.tex
