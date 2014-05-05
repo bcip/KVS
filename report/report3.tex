@@ -43,13 +43,13 @@ Wang Qinshi   \\   2012011311}
 \maketitle
 
 \setcounter{section}{-1}
-\section{Repository URL}
+ \section{Repository URL}
 \texttt{https://github.com/bcip/KVS}
 
 \section{Implement of \texttt{KVClient}}
 \subsection{Overview}
 In this task, we are supposed to implement the \texttt{KVClient} class which is ought to be able to send \textbf{serialized} request to the server
-over t he network using \texttt{socket}.
+over the network using \texttt{socket}.
 \subsection{Correctness Constraints}
 \begin{compactitem}
 \item If an error occurs at any point while processing a request that prevents a succesful responce, a \texttt{KVException} should be propogated 
@@ -163,29 +163,29 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 		\Procedure{toXML}{}
 			\State // generate XML representation for message\dots
 			\State \texttt{doc} $\leftarrow$ \texttt{newDocument}
-			\State \texttt{root} $\leftarrow$ \texttt{createElement(KVMessage)}
-			\State \texttt{doc.appendChild(root)}
+			\State \texttt{kvm} $\leftarrow$ \texttt{createElement(KVMessage)}
+			\State \texttt{doc.appendChild(kvm)}
 			\If{msgType equals resp}
 				\If{key is not null}
-					\State \texttt{root.appendChild(createElement(Key))}
+					\State \texttt{kvm.appendChild(createElement(Key))}
 				\EndIf
 				\If{value is not null}
-					\State \texttt{root.appendChild(createElement(Value))}
+					\State \texttt{kvm.appendChild(createElement(Value))}
 				\EndIf
 				\If{message is not null}
-					\State \texttt{root.appendChild(createElement(Message))}
+					\State \texttt{kvm.appendChild(createElement(Message))}
 				\EndIf
 			\Else
-				\State \texttt{doc.appendChild(createElement(Key))}
+				\State \texttt{kvm.appendChild(createElement(Key))}
 				\If{msgType equals putreq}
-					\State \texttt{doc.appendChild(createElement(Value))}
+					\State \texttt{kvm.appendChild(createElement(Value))}
 				\ElsIf{msgType not equals getreq or delreq}
 					\State // ToDo: Exception-catch with KVException, see KVConstants
 				\EndIf
 			\EndIf
 			\State \texttt{transformer} $\leftarrow$ \texttt{TransformerFactory.newInstanc().newTransformer()}
 			\State \texttt{transformer.setOutputProperty} : \texttt{ENCODING, METHOD} etc.
-			\State transform \texttt{transformer} into \texttt{String} as \texttt{retStr}
+			\State Use \texttt{transformer} to transform \texttt{doc} into \texttt{String} as \texttt{retStr}
 			\State \Return \texttt{retStr}
 		\EndProcedure
 	\end{algorithmic}
@@ -208,14 +208,215 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 	\item Test requests with invalid format and check whether throw the correct \texttt{KVException}
 \end{compactitem}
 
+
 \section{Implement of \texttt{KVCache}}
 \subsection{Overview}
+In this task, we are supposed to implement a set-associative \texttt{KVCache} using second-chance algorithm.
 \subsection{Correctness Constraints}
+\begin{compactitem}
+\item When \texttt{get} is called on a \texttt{key}, the reference bit of that entry is set to \texttt{True}
+\item If \texttt{put} is called, and the \texttt{key} exists in the cache, write \texttt{value} to the entry, set reference bit to \texttt{True}. The queue remains the same.
+\item If \texttt{put} is called, the \texttt{key} doesn't exist in the cache. So there are two posible situation. First, the entry set is not full. then entry is added to the end of the queue. Second the entry set is full, replace the first entry with \texttt{False} reference bit while cycling through the queue.
+\end{compactitem}
 \subsection{Declaration}
+Here are the declaration for the class \texttt{KVCache}.
+
+A class \texttt{CacheEntry} that has instance elements \texttt{key}, \texttt{value}, a reference bit and a valid bit. And this class is used as cache elements.
+
+A number \texttt{numPerSet} to be the max size of each set.
+
+A 2-dim array \texttt{entrySet} of class \texttt{CacheEntry} of size \texttt{numSets} times \texttt{numPerSet} to simulate the cache entry sets.
+
+A 1-dim array \texttt{entryQueue} of class \texttt{LinkedList<CacheEntry>} with size \texttt{numSets}. And this is the queue needs for the second-chance algorithm.
+
+An array \texttt{entryLock} of class \texttt{ReentrantLock} with size \texttt{numSets}. The lock of entry sets for the caller of \texttt{get}, \texttt{put}, \texttt{del}.
+
+For method \texttt{put}:
+\begin{compactitem}
+\item \texttt{emptyEntry} to save the invalid entry of the sets for using it if entry not full. And first set it to be null.
+\end{compactitem}
 \subsection{Description}
+\begin{algorithm}
+    \begin{algorithmic}
+        \Procedure{get}{String key}
+            \State get \texttt{setId} by method \texttt{getSetId} with arguments \texttt{key}
+            \While{each element of \texttt{entrySet[setId]}}
+                \If{this element is valid and key of it equal to \texttt{key}}
+                    \State set the reference bit of it to be \texttt{True}
+                    \State return the value of it
+                \EndIf
+            \EndWhile
+        \EndProcedure
+    \end{algorithmic}
+    \begin{algorithmic}
+        \Procedure{put}{String key, String value}
+            \State get \texttt{setId} by method \texttt{getSetId} with arguments \texttt{key}
+            \While{each element of \texttt{entrySet[setId]}}
+                \If{the element is invalid}
+                    \State set the element to \texttt{emptyEntry}
+                \Else
+                    \If{the key of it is equal to \texttt{key}}
+                        \State replace the value of it with \texttt{value}
+                        \State set the reference bit of it to be \texttt{True} and return
+                    \EndIf
+                \EndIf
+            \EndWhile
+            \If{\texttt{emptyEntry} is not null}
+                \State set the key and value of \texttt{emptyEntry}
+                \State set the reference bit to be \texttt{False}
+                \State set the valid bit to be \texttt{True}
+                \State add it to the last of \texttt{entryQueue} and return
+            \EndIf
+            \State get the first entry with a \texttt{False} reference bit while cycling through \texttt{entryQueue}
+             \State set the key and value of the first entry
+             \State set the reference bit to be \texttt{False}
+             \State set the valid bit to be \texttt{True}
+             \State add it to the last of \texttt{entryQueue} and return
+        \EndProcedure
+    \end{algorithmic}
+    \begin{algorithmic}
+        \Procedure{del}{String key}
+            \State get \texttt{setId} by method \texttt{getSetId} with arguments \texttt{key}
+            \While{each element of \texttt{entrySet[setId]}}
+                \If{the element is valid and the key of it is equal to \texttt{key}}
+                    \State set the valid bit to be \texttt{False}
+                    \State remove it from \texttt{entryQueue}
+                \EndIf
+            \EndWhile
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+    \begin{algorithmic}
+        \Procedure{toXML()}{}
+            \State add docment node KVCache
+            \While{each cache set}
+                \State add docment node Set in KVCache node with attribute Id
+                \While{each entry in the set}
+                    \State add docment node CacheEntry in Set node with attribute isReferenced which is the reference bit of entry
+                    \State add docment node Key and Value in CacheEntry node with text value of them to be the key and value of entry
+                \EndWhile
+            \EndWhile
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
 \subsection{Test}
+\begin{enumerate}
+\item Test \texttt{get}:
+\begin{compactitem}
+\item using \texttt{get} with a key in the cache set. See if the value gets is correct.
+\item using \texttt{get} with a key not in the set. See if the return value is null.
+\end{compactitem}
+\item Test \texttt{put}:
+\begin{compactitem}
+\item using \texttt{put} with a key already in the cache. Then see whether its value changes.
+\item using \texttt{put} with a key not in the cache when the set is not full. See whether the invalid entry is replaced with a new entry and whether the entry is at the end of \texttt{entryQueue}.
+\item using \texttt{put} with a key not in the cache when the set is full. Then see whether second-chance algorithm works.
+\end{compactitem}
+\item Test \texttt{del}:
+\begin{compactitem}
+\item using \texttt{del} with a key in the cache set. See if the entry is set invalid.
+\end{compactitem}
+\item Test \texttt{toXML}: just output it to see whether the output text is correct.
+\end{enumerate}
 
 \section{Implement of \texttt{KVServer} and \texttt{KVStore}}
+\subsection{Overview}
+In this task, we are supposed to implement the \texttt{KVServer} with \textbf{atomic} requests
+and \texttt{KVStore} class following a \textbf{write-through} caching policy.
+\subsection{Correctness Constraints}
+\begin{compactitem}
+	\item All requests are atomic in that they must modify the state of both the cache and the store together.
+	\item Requests must be parallel across different sets and serial within the same set.
+	\item Follow write-through policy.
+	\item First query cache, if there is not, access the store.
+\end{compactitem}
+\subsection{Declaration}
+Add a new \texttt{Lock storeLock} to protect \texttt{dataStore}.
+\subsection{Description}
+\begin{algorithm}
+	\begin{algorithmic}
+		\Procedure{put}{String key, String value}
+			\State Check validity of key and value
+			\State \texttt{dataCache.getLock(key).lock}
+			\State \texttt{dataCache.put(key, value)}
+			\State // Write-through
+			\State \texttt{storeLock.lock}
+			\State \texttt{dataStore.put(key, value)}
+			\State \texttt{storeLock.unlock}
+			\State \texttt{dataCache.getLock(key).unlock}
+		\EndProcedure
+		\Procedure{get}{String key}
+		\State \texttt{dataCache.getLock(key).lock}
+		\State \texttt{value} $\leftarrow$ \texttt{dataCache.get(key)}
+		\If{\texttt{value} is null}
+			\State \texttt{storeLock.lock}
+			\State \texttt{value} $\leftarrow$ \texttt{dataStore.get(key)}
+			\State \texttt{storeLock.unlock}
+			\State \texttt{dataCache.put(key, value)}
+		\EndIf
+		\State \texttt{dataCache.getLock(key).unlock}
+		\State \Return \texttt{value}
+		\EndProcedure
+		\Procedure{del}{String key}
+		\State \texttt{dataCache.getLock(key).lock}
+		\State \texttt{storeLock.lock}
+		\State \texttt{dataStore.del(key)}
+		\State \texttt{dataCache.del(key)}
+		\State \texttt{storeLock.unlock}
+		\State \texttt{dataCache.getLock(key).unlock}
+		\EndProcedure
+		\Procedure{hasKey}{String key}
+		\State \Return \texttt{(dataStore.get(key) != null)}
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+	\begin{algorithmic}
+		\Procedure{toXML}{}
+			\State \texttt{doc} $\leftarrow$ \texttt{newDocument}
+			\State \texttt{kvs} $\leftarrow$ \texttt{createElement(KVStore)}
+			\State \texttt{doc.appendChild(kvs)}
+			\For{each \texttt{key} in \texttt{store}}
+				\State \texttt{kvs.append(createElement(KVPair))}
+				\State \texttt{kvs.append(createElement(Key))} with \texttt{key}
+				\State \texttt{kvs.append(createElement(Value))} with \texttt{store.get(key)}
+			\EndFor
+			\State \texttt{transformer} $\leftarrow$ \texttt{TransformerFactory.newInstanc().newTransformer()}
+			\State \texttt{transformer.setOutputProperty} : \texttt{ENCODING, METHOD} etc.
+			\State use \texttt{transformer} to transform \texttt{doc} into \texttt{String} as \texttt{retStr}
+			\State \Return \texttt{retStr}
+		\EndProcedure
+		\Procedure{dumpToFile}{String fileName}
+			\State \texttt{writer} $\leftarrow$ \texttt{new BufferedWriter(new FileWriter(fileName))}
+			\State \texttt{writer.writer(toXML())}
+			\State \texttt{writer.close}
+		\EndProcedure
+		\Procedure{restoreFromFile}{String fileName}
+			\State \texttt{resetStore}
+			\State \texttt{kvps} $\leftarrow$ \texttt{getElementsByTagName(KVPair)}
+			\For{each \texttt{kvp} in \texttt{kvps}}
+				\State \texttt{store.put(kvp.key, kvp.value)} using \texttt{getElementsByTagName}
+			\EndFor
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\subsection{Test}
+\begin{enumerate}
+	\item Test \texttt{KVServer}:
+		\begin{compactitem}
+			\item Test \texttt{put} and check whether write through correctly
+			\item Test \texttt{del} and check whether it is removed from dataCache, dataStore 
+			\item Test \texttt{get}, return null if no such key, otherwise return value.
+		\end{compactitem}
+	\item Test \texttt{KVStore}:
+		\begin{compactitem}
+			\item Test the format of \texttt{toXML} and \texttt{dumpToFile}
+			\item Test \texttt{restoreFromFile} using both valid and invalid files
+		\end{compactitem}
+\end{enumerate}
+
+\section{Implement of \texttt{SocketServer}, \texttt{ServerClientHandler} and \texttt{ThreadPool}}
 \subsection{Overview}
 \subsection{Correctness Constraints}
 \subsection{Declaration}
