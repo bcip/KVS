@@ -146,8 +146,13 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 		\Procedure{KVMessage}{Socket sock, int timeout}
 			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{sock.setSoTimeout(timeout)}
-			\State \texttt{in} $\leftarrow$ \texttt{sock.getInputStream}
-			\State // ToDo: some parse job\dots
+			\State \texttt{in} $\leftarrow$ \texttt{new NoCloseInputStream(sock.getInputStream)}
+			\State // some parse job\dots
+			\State \texttt{kvMsg} $\leftarrow$ \texttt{getElementByTagName(KVMessage)}
+			\State \texttt{msgType} $\leftarrow$ \texttt{kvMsg.getAttribute(type)}
+			\State \texttt{key} $\leftarrow$ \texttt{getElementByTagName(Key)}
+			\State \texttt{value} $\leftarrow$ \texttt{getElementByTagName(Value)}
+			\State \texttt{message} $\leftarrow$ \texttt{getElementByTagName(Message)}
 		\EndProcedure
 		\Procedure{KVMessage}{KVMessage kvm}
 			\State \texttt{msgType} $\leftarrow$ \texttt{kvm.msgType}
@@ -156,19 +161,52 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 			\State \texttt{message} $\leftarrow$ \texttt{kvm.message}
 		\EndProcedure
 		\Procedure{toXML}{}
-			\State // ToDo: generate XML representation for message\dots
+			\State // generate XML representation for message\dots
+			\State \texttt{doc} $\leftarrow$ \texttt{newDocument}
+			\State \texttt{root} $\leftarrow$ \texttt{createElement(KVMessage)}
+			\State \texttt{doc.appendChild(root)}
+			\If{msgType equals resp}
+				\If{key is not null}
+					\State \texttt{root.appendChild(createElement(Key))}
+				\EndIf
+				\If{value is not null}
+					\State \texttt{root.appendChild(createElement(Value))}
+				\EndIf
+				\If{message is not null}
+					\State \texttt{root.appendChild(createElement(Message))}
+				\EndIf
+			\Else
+				\State \texttt{doc.appendChild(createElement(Key))}
+				\If{msgType equals putreq}
+					\State \texttt{doc.appendChild(createElement(Value))}
+				\ElsIf{msgType not equals getreq or delreq}
+					\State // ToDo: Exception-catch with KVException, see KVConstants
+				\EndIf
+			\EndIf
+			\State \texttt{transformer} $\leftarrow$ \texttt{TransformerFactory.newInstanc().newTransformer()}
+			\State \texttt{transformer.setOutputProperty} : \texttt{ENCODING, METHOD} etc.
+			\State transform \texttt{transformer} into \texttt{String} as \texttt{retStr}
+			\State \Return \texttt{retStr}
 		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+	\begin{algorithmic}
 		\Procedure{sendMessage}{Socket sock}
 			\State // ToDo: Exception-catch with KVException, see KVConstants
-			\State \texttt{out} $\leftarrow$ \texttt{new ObjectOutputStream(sock.getOutputStream)}
+			\State \texttt{out} $\leftarrow$ \texttt{sock.getOutputStream}
 			\State \texttt{str} $\leftarrow$ \texttt{toXML()}
-			\State \texttt{out.writeObject(str)}
+			\State \texttt{out.write(str.getBytes)}
 			\State \texttt{out.flush}
-			\State \texttt{out.close}
+			\State \texttt{out.shutdownOutput}
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
+\begin{compactitem}
+	\item Test all kinds of valid requests and check whether the \texttt{KVMessage} parses and transforms \texttt{toXML} correctly
+	\item Test requests with invalid format and check whether throw the correct \texttt{KVException}
+\end{compactitem}
 
 \section{Implement of \texttt{KVCache}}
 \subsection{Overview}
