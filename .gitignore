@@ -1,7 +1,6 @@
 .classpath
 .project
 .log*
-.log
 bin/
 out/
 testreport/
@@ -11,5 +10,7 @@ testreport/
 *.toc
 *.bak
 *.pdf
+*.log
+*.out
 
 !*.tex
