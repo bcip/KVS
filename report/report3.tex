@@ -1,0 +1,136 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings, xcolor}
+\usepackage{paralist}
+\usepackage{chngpage}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\title{Project 3 - Build a Single-Server Key-Value Store}
+\author{
+Xie Yuanhang  \\   2011012344\and
+Kuang Zhonghong  \\   2011012357\and
+Li Qingyang   \\   2011012360 \and
+Yin Mingtian   \\   2011012362\and
+Wang Qinshi   \\   2012011311}
+
+\changetext{}{+1cm}{-0.5cm}{-0.5cm}{}
+
+\date{}
+\begin{document}
+\maketitle
+
+\setcounter{section}{-1}
+\section{Repository URL}
+
+\section{Implement of \texttt{KVClient}}
+\subsection{Overview}
+In this task, we are supposed to implement the \texttt{KVClient} class which is ought to be able to send \textbf{serialized} request to the server
+over the network using \texttt{socket}.
+\subsection{Correctness Constraints}
+\begin{compactitem}
+\item If an error occurs at any point while processing a request that prevents a succesful responce, a \texttt{KVException} should be propogated 
+	to the client. And a \texttt{KVException} should contain a \texttt{KVMessage} with an error string from \texttt{KVConstants.java}.
+\item Requests must be serialized and each of them should be made with a new \texttt{Socket}.
+\end{compactitem}
+\subsection{Declaration}
+\subsection{Description}
+\begin{algorithm}
+	\begin{algorithmic}
+		\Procedure{connectHost}{}
+			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State \texttt{socket} $\leftarrow$ \texttt{new Socket(server, port)}
+			\State \texttt{socket.setSoTimeOut(TIMEOUT\_MILLISECONDS)}
+			\State \Return \texttt{socket}
+		\EndProcedure
+		\Procedure{closeHost}{Socket sock}
+			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State \texttt{sock.close}
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{algorithm}
+	\begin{algorithmic}
+		\Procedure{put}{String key, String value}
+			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(PUT\_REQ)}
+			\State \texttt{message.key} $\leftarrow$ \texttt{key}
+			\State \texttt{message.value} $\leftarrow$ \texttt{value}
+			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
+			\State \texttt{closeHost(socket)}
+			\If{\texttt{response} has invalid type}
+				\State // ToDo: throw KVException
+			\EndIf
+		\EndProcedure
+		\Procedure{get}{String key}
+			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(GET\_REQ)}
+			\State \texttt{message.key} $\leftarrow$ \texttt{key}
+			\State \texttt{message.sendMessage(socket)}
+			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
+			\State \texttt{closeHost(socket)}
+			\If{\texttt{response} has invalid type}
+				\State // ToDo: throw KVException
+			\EndIf
+			\State \Return \texttt{response.getValue}
+		\EndProcedure
+		\Procedure{del}{String key}
+			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(DEL\_REQ)}
+			\State \texttt{message.key} $\leftarrow$ \texttt{key}
+			\State \texttt{message.sendMessage(socket)}
+			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
+			\State \texttt{closeHost(socket)}
+			\If{\texttt{response} has invalid type}
+				\State // ToDo: throw KVException
+			\EndIf
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\subsection{Test}
+
+\section{Implement of \texttt{KVMessage}}
+\subsection{Overview}
+\subsection{Correctness Constraints}
+\subsection{Declaration}
+\subsection{Description}
+\subsection{Test}
+
+\section{Implement of \texttt{KVCache}}
+\subsection{Overview}
+\subsection{Correctness Constraints}
+\subsection{Declaration}
+\subsection{Description}
+\subsection{Test}
+
+\section{Implement of \texttt{KVServer} and \texttt{KVStore}}
+\subsection{Overview}
+\subsection{Correctness Constraints}
+\subsection{Declaration}
+\subsection{Description}
+\subsection{Test}
+\end{document}
