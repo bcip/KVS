@@ -5,6 +5,7 @@
 \usepackage{listings, xcolor}
 \usepackage{paralist}
 \usepackage{chngpage}
+\usepackage[colorlinks,linkcolor=black,anchorcolor=black,citecolor=black]{hyperref}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -43,11 +44,12 @@ Wang Qinshi   \\   2012011311}
 
 \setcounter{section}{-1}
 \section{Repository URL}
+\texttt{https://github.com/bcip/KVS}
 
 \section{Implement of \texttt{KVClient}}
 \subsection{Overview}
 In this task, we are supposed to implement the \texttt{KVClient} class which is ought to be able to send \textbf{serialized} request to the server
-over the network using \texttt{socket}.
+over t he network using \texttt{socket}.
 \subsection{Correctness Constraints}
 \begin{compactitem}
 \item If an error occurs at any point while processing a request that prevents a succesful responce, a \texttt{KVException} should be propogated 
@@ -55,17 +57,17 @@ over the network using \texttt{socket}.
 \item Requests must be serialized and each of them should be made with a new \texttt{Socket}.
 \end{compactitem}
 \subsection{Declaration}
-\subsection{Description}
+\subsection{Description} 
 \begin{algorithm}
 	\begin{algorithmic}
 		\Procedure{connectHost}{}
-			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{socket} $\leftarrow$ \texttt{new Socket(server, port)}
-			\State \texttt{socket.setSoTimeOut(TIMEOUT\_MILLISECONDS)}
+			\State \texttt{socket.setSoTimeOut(KVConstants.TIMEOUT\_MILLISECONDS)}
 			\State \Return \texttt{socket}
 		\EndProcedure
 		\Procedure{closeHost}{Socket sock}
-			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{sock.close}
 		\EndProcedure
 	\end{algorithmic}
@@ -73,51 +75,84 @@ over the network using \texttt{socket}.
 \begin{algorithm}
 	\begin{algorithmic}
 		\Procedure{put}{String key, String value}
-			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
-			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(PUT\_REQ)}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(KVConstants.PUT\_REQ)}
 			\State \texttt{message.key} $\leftarrow$ \texttt{key}
 			\State \texttt{message.value} $\leftarrow$ \texttt{value}
 			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
 			\State \texttt{closeHost(socket)}
-			\If{\texttt{response} has invalid type}
-				\State // ToDo: throw KVException
+			\If{\texttt{response} is invalid}
+				\State // ToDo: throw KVException, see KVConstants
 			\EndIf
 		\EndProcedure
 		\Procedure{get}{String key}
-			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
-			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(GET\_REQ)}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(KVConstants.GET\_REQ)}
 			\State \texttt{message.key} $\leftarrow$ \texttt{key}
 			\State \texttt{message.sendMessage(socket)}
 			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
 			\State \texttt{closeHost(socket)}
-			\If{\texttt{response} has invalid type}
-				\State // ToDo: throw KVException
+			\If{\texttt{response} is invalid}
+				\State // ToDo: throw KVException, see KVConstants
 			\EndIf
 			\State \Return \texttt{response.getValue}
 		\EndProcedure
 		\Procedure{del}{String key}
-			\State // ToDo: Exception-catch with KVException-throw-and-catch
+			\State // ToDo: Exception-catch with KVException, see KVConstants
 			\State \texttt{socket} $\leftarrow$ \texttt{connectHost}
-			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(DEL\_REQ)}
+			\State \texttt{message} $\leftarrow$ \texttt{new KVMessage(KVConstants.DEL\_REQ)}
 			\State \texttt{message.key} $\leftarrow$ \texttt{key}
 			\State \texttt{message.sendMessage(socket)}
 			\State \texttt{response} $\leftarrow$ \texttt{new KVMessage(socket.getInputStream)}
 			\State \texttt{closeHost(socket)}
-			\If{\texttt{response} has invalid type}
-				\State // ToDo: throw KVException
+			\If{\texttt{response} is invalid}
+				\State // ToDo: throw KVException, see KVConstants
 			\EndIf
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
+\begin{enumerate}
+	\item Test \texttt{put}:
+		\begin{compactitem}
+			\item Put and get a key-value pair and check equality
+			\item Overwrite and get above key-value and check correctness of the overwrite
+		\end{compactitem}
+	\item Test \texttt{get}:
+		\begin{compactitem}
+			\item Get a key-value pair and check whether it is what we want
+			\item Get a non-exist key-value pair and make sure it cause exception
+		\end{compactitem}
+	\item Test \texttt{del}: Del a key and make sure it is removed.
+\end{enumerate}
 
 \section{Implement of \texttt{KVMessage}}
 \subsection{Overview}
+In this task, we are supposed to implement the \texttt{KVMessage} class with \textbf{serialization} and \textbf{deserialization}.
+
 \subsection{Correctness Constraints}
+\begin{compactitem}
+	\item Use \texttt{NoCloseInputStream} to reuse corresponding \texttt{OutputStream} of the socket to send a response.
+		Here is a \href{https://weblogs.java.net/blog/kohsuke/archive/2005/07/socket_xml_pitf.html}{reference}.
+	\item Implement \texttt{KVMessage} constructor with timeout but do not directly use it, use \texttt{KVMessage(Socket socket)} instead.
+	\item \texttt{KVMessage} must serialize to strict formats.
+\end{compactitem}
 \subsection{Declaration}
 \subsection{Description}
+\begin{algorithm}
+	\begin{algorithmic}
+		\Procedure{KVMessage}{Socket sock, int timeout}
+		\EndProcedure
+		\Procedure{KVMessage}{KVMessage kvm}
+		\EndProcedure
+		\Procedure{toXML}{}
+		\EndProcedure
+		\Procedure{sendMessage}{Socket sock}
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 \subsection{Test}
 
 \section{Implement of \texttt{KVCache}}
