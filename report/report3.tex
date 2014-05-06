@@ -52,12 +52,12 @@ In this task, we are supposed to implement the \texttt{KVClient} class which is 
 over the network using \texttt{socket}.
 \subsection{Correctness Constraints}
 \begin{compactitem}
-\item If an error occurs at any point while processing a request that prevents a succesful responce, a \texttt{KVException} should be propogated 
+\item If an error occurs at any point while processing a request that prevents a succesful responce, a \texttt{KVException} should be propogated
 	to the client. And a \texttt{KVException} should contain a \texttt{KVMessage} with an error string from \texttt{KVConstants.java}.
 \item Requests must be serialized and each of them should be made with a new \texttt{Socket}.
 \end{compactitem}
 \subsection{Declaration}
-\subsection{Description} 
+\subsection{Description}
 \begin{algorithm}
 	\begin{algorithmic}
 		\Procedure{connectHost}{}
@@ -406,7 +406,7 @@ Add a new \texttt{Lock storeLock} to protect \texttt{dataStore}.
 	\item Test \texttt{KVServer}:
 		\begin{compactitem}
 			\item Test \texttt{put} and check whether write through correctly
-			\item Test \texttt{del} and check whether it is removed from dataCache, dataStore 
+			\item Test \texttt{del} and check whether it is removed from dataCache, dataStore
 			\item Test \texttt{get}, return null if no such key, otherwise return value.
 		\end{compactitem}
 	\item Test \texttt{KVStore}:
@@ -420,6 +420,81 @@ Add a new \texttt{Lock storeLock} to protect \texttt{dataStore}.
 \subsection{Overview}
 \subsection{Correctness Constraints}
 \subsection{Declaration}
+\begin{compactitem}
+	\item \texttt{BlockingQueue<Runnable>} \texttt{jobQueue} in \texttt{ThreadPool}
+\end{compactitem}
 \subsection{Description}
+\begin{algorithm}
+    \caption{class \texttt{SocketServer}}
+	\begin{algorithmic}
+        \Procedure{connect}{}
+            \State \texttt{server} $\leftarrow$ new \texttt{ServerSocket}(\texttt{port})
+        \EndProcedure
+        \Procedure{start}{}
+            \While {not stopped}
+                \State accept a socket
+                \State let the handler to handle the socket
+            \EndWhile
+            \State \vdots
+        \EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+    \caption{class \texttt{ServerClientHandler}}
+	\begin{algorithmic}
+        \Procedure {ServerClientHandler}{\texttt{KVServer} \texttt{kvServer}, \texttt{int} \texttt{connections}}
+            \State this.\texttt{kvServer} $\leftarrow$ \texttt{kvServer}
+            \State this.\texttt{threadPool} $\leftarrow$ new \texttt{ThreadPool}(\texttt{connections})
+        \EndProcedure
+        \Procedure {handle}{\texttt{Socket} \texttt{client}}
+            \State \texttt{threadPool}.\texttt{addJob}(new \texttt{ClientHandler}(\texttt{client}))
+        \EndProcedure
+        \Procedure {ClientHandler.run}{}
+            \State \texttt{request} $\leftarrow$ new \texttt{KVMessage}(\texttt{client})
+            \If {type of put}
+                \State \texttt{kvServer}.\texttt{put}(\texttt{key}, \texttt{value})
+                \State construct success message
+            \ElsIf {type of get}
+                \State \texttt{value} $\leftarrow$ \texttt{kvServer}.\texttt{get}(\texttt{key})
+                \State construct response message
+            \ElsIf {type of del}
+                \State \texttt{kvServer}.\texttt{del}(\texttt{key})
+                \State construct success message
+            \Else
+                \State throw corresponding exception
+            \EndIf
+            \If {exception occur}
+                \State construct error message
+            \EndIf
+            \State send response
+        \EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+    \caption{class \texttt{ThreadPool}}
+	\begin{algorithmic}
+        \Procedure {ThreadPool}{int \texttt{size}}
+            \State \vdots
+            \State \texttt{jobQueue} $leftarrow$ new \texttt{BlockingQueue<Runnable>}()
+            \For {\texttt{i} from 0 to \texttt{size}-1}
+                \State \texttt{threads[i]} $\leftarrow$ new \texttt{WorkerThread}()
+                \State \texttt{threads[i]}.\texttt{start}()
+            \EndFor
+        \EndProcedure
+        \Procedure {addJob}{\texttt{Runnable} \texttt{r}}
+            \State \texttt{jobQueue}.\texttt{put}(\texttt{r})
+        \EndProcedure
+        \Procedure {getJob}{}
+            \State \Return \texttt{jobQueue}.\texttt{take}()
+        \EndProcedure
+        \Procedure {\texttt{WorkerThread}.run}{}
+            \While {true}
+                \State \texttt{threadPool}.\texttt{getJob}().\texttt{run}()
+            \EndWhile
+        \EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 \subsection{Test}
 \end{document}
