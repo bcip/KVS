@@ -1,10 +1,13 @@
 package kvstore;
 
+import java.util.concurrent.BlockingQueue;
+
 
 public class ThreadPool {
 
     /* Array of threads in the threadpool */
     private Thread threads[];
+    private BlockingQueue<Runnable> jobQueue;
 
 
     /**
@@ -15,7 +18,10 @@ public class ThreadPool {
     public ThreadPool(int size) {
         threads = new Thread[size];
 
-        // implement me
+        for(int i = 0; i < size; i++){
+        	threads[i] = new WorkerThread(this);
+        	threads[i].start();
+        }
     }
 
     /**
@@ -28,7 +34,7 @@ public class ThreadPool {
      *         state. Your implementation may or may not actually throw this.
      */
     public void addJob(Runnable r) throws InterruptedException {
-        // implement me
+        jobQueue.put(r);
     }
 
     /**
@@ -38,8 +44,7 @@ public class ThreadPool {
      *         state. Your implementation may or may not actually throw this.
      */
     private Runnable getJob() throws InterruptedException {
-        // implement me
-        return null;
+        return jobQueue.take();
     }
 
     /**
@@ -63,7 +68,14 @@ public class ThreadPool {
          */
         @Override
         public void run() {
-            // implement me
+            while(true){
+            	try{
+            		threadPool.getJob().run();
+            	}
+            	catch(Exception e){
+            		//ignore
+            	}
+            }
         }
     }
 }

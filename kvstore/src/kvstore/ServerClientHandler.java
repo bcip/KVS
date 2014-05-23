@@ -30,7 +30,8 @@ public class ServerClientHandler implements NetworkHandler {
      * @param connections number of threads in threadPool to service requests
      */
     public ServerClientHandler(KVServer kvServer, int connections) {
-        // implement me
+        this.kvServer = kvServer;
+        this.threadPool = new ThreadPool(connections);
     }
 
     /**
@@ -41,7 +42,12 @@ public class ServerClientHandler implements NetworkHandler {
      */
     @Override
     public void handle(Socket client) {
-        // implement me
+    	try{
+    		threadPool.addJob(new ClientHandler(client));
+    	}
+    	catch(Exception e){
+    		//ignore
+    	}
     }
 
     /**
@@ -67,7 +73,21 @@ public class ServerClientHandler implements NetworkHandler {
          */
         @Override
         public void run() {
-            // implement me
+        	KVMessage response = null;
+        	try{
+        		KVMessage request = new KVMessage(client);
+        		//TODO
+        	}
+        	catch(KVException e){
+        		response = e.getKVMessage();
+        	}
+        	
+        	try{
+        		response.sendMessage(client);
+        	}
+        	catch(Exception e){
+        		//ignore
+        	}
         }
     }
 
