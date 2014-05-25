@@ -40,12 +40,10 @@ public class KVClient implements KeyValueInterface {
 			socket.setSoTimeout(TIMEOUT_MILLISECONDS);
 	        return socket;
 		} catch (UnknownHostException e1){
-			KVMessage unMsg = new KVMessage(RESP);
-			unMsg.setMessage(ERROR_COULD_NOT_CREATE_SOCKET);
+			KVMessage unMsg = new KVMessage(RESP, ERROR_COULD_NOT_CREATE_SOCKET);
 			throw new KVException(unMsg);
 		} catch (IOException e2) {
-			KVMessage ioMsg = new KVMessage(RESP);
-			ioMsg.setMessage(ERROR_COULD_NOT_CONNECT);
+			KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_CONNECT);
 			throw new KVException(ioMsg);
 		}
     }
@@ -65,8 +63,7 @@ public class KVClient implements KeyValueInterface {
     	try {
 			sock.close();
 		} catch (IOException e) {
-			KVMessage ioMsg = new KVMessage(RESP);
-			ioMsg.setMessage(ERROR_COULD_NOT_CLOSE);
+			KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_CLOSE);
 			throw new KVException(ioMsg);
 		}
     }
@@ -89,13 +86,11 @@ public class KVClient implements KeyValueInterface {
 			KVMessage respMsg = new KVMessage(socket);
 			closeHost(socket);
 			if(!respMsg.getMessage().equals("Success")){
-				KVMessage excpMsg = new KVMessage(RESP);
-				excpMsg.setMessage(respMsg.getMessage());
+				KVMessage excpMsg = new KVMessage(RESP, respMsg.getMessage());
 				throw new KVException(excpMsg);
 			}
 		} catch (KVException e) {
-			KVMessage ioMsg = new KVMessage(RESP);
-			ioMsg.setMessage(ERROR_COULD_NOT_SEND_DATA);
+			KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_SEND_DATA);
 			throw new KVException(ioMsg);
 		}
     }
@@ -118,15 +113,13 @@ public class KVClient implements KeyValueInterface {
     		KVMessage respMsg = new KVMessage(socket);
     		closeHost(socket);
     		if(respMsg.getValue() == null){
-    			KVMessage excpMsg = new KVMessage(RESP);
-    			excpMsg.setMessage(respMsg.getMessage());
+    			KVMessage excpMsg = new KVMessage(RESP, respMsg.getMessage());
     			throw new KVException(excpMsg);
     		}else{
     			return respMsg.getValue();
     		}
     	}catch (KVException e){
-    		KVMessage ioMsg = new KVMessage(RESP);
-    		ioMsg.setMessage(ERROR_COULD_NOT_RECEIVE_DATA);
+    		KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_RECEIVE_DATA);
     		throw new KVException(ioMsg);
     	}
     }
@@ -148,13 +141,11 @@ public class KVClient implements KeyValueInterface {
     		KVMessage respMsg = new KVMessage(socket);
     		closeHost(socket);
     		if(!respMsg.getMessage().equals("Success")){
-    			KVMessage excpMsg = new KVMessage(RESP);
-    			excpMsg.setMessage(respMsg.getMessage());
+    			KVMessage excpMsg = new KVMessage(RESP, respMsg.getMessage());
     			throw new KVException(excpMsg);
     		}
     	}catch (KVException e){
-    		KVMessage ioMsg = new KVMessage(RESP);
-    		ioMsg.setMessage(ERROR_COULD_NOT_SEND_DATA);
+    		KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_SEND_DATA);
     		throw new KVException(ioMsg);
     	}
     }

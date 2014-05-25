@@ -3,6 +3,7 @@ package kvstore;
 import static kvstore.KVConstants.*;
 
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class services all storage logic for an individual key-value server.
@@ -14,6 +15,8 @@ public class KVServer implements KeyValueInterface {
 
     private KVStore dataStore;
     private KVCache dataCache;
+    
+    private Lock storeLock;
 
     private static final int MAX_KEY_SIZE = 256;
     private static final int MAX_VAL_SIZE = 256 * 1024;
@@ -28,8 +31,43 @@ public class KVServer implements KeyValueInterface {
     public KVServer(int numSets, int maxElemsPerSet) {
         this.dataCache = new KVCache(numSets, maxElemsPerSet);
         this.dataStore = new KVStore();
+        storeLock = new ReentrantLock();
     }
 
+    /**
+     * Check the length of key
+     * 
+     * @param key String key
+     * @return true if key.length is valid; otherwise, return false
+     * @throws KVException 
+     */
+    private void checkKey(String key) throws KVException{
+    	if(key == null || key.length() == 0){
+    		KVMessage excpMsg = new KVMessage(RESP, ERROR_INVALID_KEY);
+    		throw new KVException(excpMsg);
+    	}else if( key.length() > MAX_KEY_SIZE){
+    		KVMessage excpMsg = new KVMessage(RESP, ERROR_OVERSIZED_KEY);
+    		throw new KVException(excpMsg);
+    	}
+    }
+    
+    /**
+     * Check the length of value
+     * 
+     * @param value String value
+     * @return true if value.length is valid; otherwise, return false
+     * @throws KVException 
+     */
+    private void checkValue(String value) throws KVException{
+    	if(value == null || value.length() == 0){
+    		KVMessage excpMsg = new KVMessage(RESP, ERROR_INVALID_VALUE);
+    		throw new KVException(excpMsg);
+    	}else if( value.length() > MAX_VAL_SIZE){
+    		KVMessage excpMsg = new KVMessage(RESP, ERROR_OVERSIZED_VALUE);
+    		throw new KVException(excpMsg);
+    	}
+    }
+    
     /**
      * Performs put request on cache and store.
      *
@@ -40,6 +78,21 @@ public class KVServer implements KeyValueInterface {
     @Override
     public void put(String key, String value) throws KVException {
         // implement me
+    	checkKey(key);
+    	checkValue(value);
+    	
+    	dataCache.getLock(key).lock();
+    	try{
+    		dataCache.put(key, value);
+    		storeLock.lock();
+    		try{
+    			dataStore.put(key, value);
+    		}finally{
+    			storeLock.unlock();
+    		}
+    	}finally{
+    		dataCache.getLock(key).unlock();
+    	}
     }
 
     /**
@@ -53,7 +106,23 @@ public class KVServer implements KeyValueInterface {
     @Override
     public String get(String key) throws KVException {
         // implement me
-        return null;
+    	checkKey(key);
+    	dataCache.getLock(key).lock();
+    	
+    	try{
+    		String value = dataCache.get(key);
+    		if(value == null){
+    			storeLock.lock();
+    			try{
+    				value = dataStore.get(key);
+    			}finally{
+    				storeLock.unlock();
+    			}
+    		}
+    		return value;
+    	}finally{
+    		dataCache.getLock(key).unlock();
+    	}
     }
 
     /**
@@ -65,6 +134,22 @@ public class KVServer implements KeyValueInterface {
     @Override
     public void del(String key) throws KVException {
         // implement me
+    	checkKey(key);
+    	dataCache.getLock(key).lock();
+    	
+    	try{
+    		storeLock.lock();
+    		try{
+    			// first call get: throw exception if key doesn't exist
+    			dataStore.get(key);
+    			dataCache.del(key);
+    			dataStore.del(key);
+    		}finally{
+    			storeLock.unlock();
+    		}
+    	}finally{
+    		dataCache.getLock(key).unlock();
+    	}
     }
 
     /**
@@ -74,10 +159,12 @@ public class KVServer implements KeyValueInterface {
      * are allowed to call dataStore.get() for this method.
      *
      * @param key key to check for membership in store
+     * @throws KVException 
      */
-    public boolean hasKey(String key) {
+    public boolean hasKey(String key) throws KVException {
         // implement me
-        return false;
+    	
+        return dataStore.get(key) != null;
     }
 
     /** This method is purely for convenience and will not be tested. */
