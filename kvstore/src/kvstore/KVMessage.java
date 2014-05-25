@@ -21,6 +21,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+
 /**
  * This is the object that is used to generate the XML based messages for
  * communication between clients and servers.
@@ -91,8 +92,8 @@ public class KVMessage implements Serializable {
 			DocumentBuilder builder = DocumentBuilderFactory.newInstance()
 					.newDocumentBuilder();
 			sock.setSoTimeout(timeout);
-			Document doc = builder.parse(new NoCloseInputStream(sock
-					.getInputStream()));
+			NoCloseInputStream ncis = new NoCloseInputStream(sock.getInputStream());
+			Document doc = builder.parse(ncis);
 			Node KVMessage = doc.getElementsByTagName("KVMessage").item(0);
 			if (KVMessage == null) {
 				throw new KVException(new KVMessage(KVConstants.RESP,
@@ -151,6 +152,7 @@ public class KVMessage implements Serializable {
 			throw new KVException(exceptMessage);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
 			KVMessage exceptMessage = new KVMessage(KVConstants.RESP,
 					KVConstants.ERROR_COULD_NOT_RECEIVE_DATA);
 			throw new KVException(exceptMessage);
@@ -273,12 +275,15 @@ public class KVMessage implements Serializable {
 	public void sendMessage(Socket sock) throws KVException {
 		// implement me
 		try {
-			OutputStream outstream = sock.getOutputStream();
+			
 			String outputMessage = this.toXML();
+			OutputStream outstream = sock.getOutputStream();
 			byte[] sendData = outputMessage.getBytes();
 			outstream.write(sendData);
 			outstream.flush();
 			sock.shutdownOutput();
+			
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			throw new KVException(new KVMessage(KVConstants.RESP, KVConstants.ERROR_COULD_NOT_SEND_DATA));

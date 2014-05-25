@@ -26,6 +26,17 @@ public class KVClient implements KeyValueInterface {
         this.port = port;
     }
 
+    private void checkKey(String key) throws KVException{
+    	if(key == null || key.length() == 0){
+    		throw new KVException(new KVMessage(RESP, ERROR_INVALID_KEY));
+    	}
+    }
+    private void checkValue(String value) throws KVException{
+    	if(value == null || value.length() == 0){
+    		throw new KVException(new KVMessage(RESP, ERROR_INVALID_VALUE));
+    	}
+    }
+    
     /**
      * Creates a socket connected to the server to make a request.
      *
@@ -78,6 +89,9 @@ public class KVClient implements KeyValueInterface {
     public void put(String key, String value) throws KVException {
         // implement me
 		try {
+			checkKey(key);
+			checkKey(value);
+			
 			Socket socket = connectHost();
 			KVMessage putMsg = new KVMessage(PUT_REQ);
 			putMsg.setKey(key);
@@ -90,8 +104,7 @@ public class KVClient implements KeyValueInterface {
 				throw new KVException(excpMsg);
 			}
 		} catch (KVException e) {
-			KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_SEND_DATA);
-			throw new KVException(ioMsg);
+			throw e;
 		}
     }
 
@@ -106,6 +119,8 @@ public class KVClient implements KeyValueInterface {
     public String get(String key) throws KVException {
         // implement me
     	try{
+    		checkKey(key);
+    		
     		Socket socket = connectHost();
     		KVMessage getMsg = new KVMessage(GET_REQ);
     		getMsg.setKey(key);
@@ -119,8 +134,7 @@ public class KVClient implements KeyValueInterface {
     			return respMsg.getValue();
     		}
     	}catch (KVException e){
-    		KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_RECEIVE_DATA);
-    		throw new KVException(ioMsg);
+    		throw e;
     	}
     }
 
@@ -134,6 +148,8 @@ public class KVClient implements KeyValueInterface {
     public void del(String key) throws KVException {
         // implement me
     	try{
+    		checkKey(key);
+    		
     		Socket socket = connectHost();
     		KVMessage delMsg = new KVMessage(DEL_REQ);
     		delMsg.setKey(key);
@@ -145,8 +161,7 @@ public class KVClient implements KeyValueInterface {
     			throw new KVException(excpMsg);
     		}
     	}catch (KVException e){
-    		KVMessage ioMsg = new KVMessage(RESP, ERROR_COULD_NOT_SEND_DATA);
-    		throw new KVException(ioMsg);
+    		throw e;
     	}
     }
 
