@@ -4,6 +4,18 @@ import java.util.LinkedList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.xml.parsers.*;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
+
 /**
  * A set-associate cache which has a fixed maximum number of sets (numSets).
  * Each set has a maximum number of elements (MAX_ELEMS_PER_SET).
@@ -13,6 +25,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public class KVCache implements KeyValueInterface {
 	
 	private int numSets = 100;
+	private int maxElemsPerSet = 10;
+	private Entry[][] cache;
+	private LinkedList<Entry>[] entryQueue;
+	private ReentrantLock[] cacheLock;
 	
     /**
      * Constructs a second-chance-replacement cache.
@@ -23,6 +39,19 @@ public class KVCache implements KeyValueInterface {
     @SuppressWarnings("unchecked")
     public KVCache(int numSets, int maxElemsPerSet) {
         // implement me
+    	this.numSets = numSets;
+    	this.maxElemsPerSet = maxElemsPerSet;
+    	cache = new Entry[numSets][];
+    	entryQueue =(LinkedList<Entry>[]) new LinkedList<?>[numSets];
+    	cacheLock = new ReentrantLock[numSets];
+    	for(int i = 0; i < numSets; i++){
+    		cache[i] = new Entry[maxElemsPerSet];
+    		entryQueue[i] = new LinkedList<Entry>();
+    		cacheLock[i] = new ReentrantLock();
+    		for(int j = 0; j < maxElemsPerSet; j++){
+    			cache[i][j] = new Entry();
+    		}
+    	}
     }
 
     /**
@@ -37,7 +66,16 @@ public class KVCache implements KeyValueInterface {
     @Override
     public String get(String key) {
         // implement me
-        return null;
+        String res = null;
+        int setId = this.getSetId(key);
+        for(int i = 0; i < this.maxElemsPerSet; i++){
+        	Entry entry = cache[setId][i];
+        	if(entry.valid && entry.key.equals(key)){
+        		entry.referenceBit = true;
+        		res = entry.value;
+        	}
+        }
+        return res;
     }
 
     /**
@@ -59,6 +97,39 @@ public class KVCache implements KeyValueInterface {
     @Override
     public void put(String key, String value) {
         // implement me
+    	int setId = this.getSetId(key);
+    	Entry emptyEntry = null;
+    	for (int i = 0; i < this.maxElemsPerSet; i++){
+    		Entry entry = cache[setId][i];
+    		if(entry.valid){
+    			if(entry.key.equals(key)){
+    				entry.value = value;
+    				entry.referenceBit = true;
+    				return;
+    			}
+    		}else{
+    			emptyEntry = entry;
+    		}
+    	}
+    	if(emptyEntry != null){
+    		emptyEntry.key = key;
+    		emptyEntry.value = value;
+    		emptyEntry.valid = true;
+    		emptyEntry.referenceBit = false;
+    		entryQueue[setId].addLast(emptyEntry);
+    		return;
+    	}else{
+    		Entry entry = entryQueue[setId].removeFirst();
+    		while(entry.referenceBit){
+    			entry.referenceBit = false;
+    			entryQueue[setId].addLast(entry);
+    			entry = entryQueue[setId].removeFirst();
+    		}
+    		entry.key = key;
+    		entry.value = value;
+    		entryQueue[setId].addLast(entry);
+    		return;
+    	}
     }
 
     /**
@@ -71,6 +142,14 @@ public class KVCache implements KeyValueInterface {
     @Override
     public void del(String key) {
         // implement me
+    	int setId = this.getSetId(key);
+    	for(int i = 0; i < this.maxElemsPerSet; i++){
+    		Entry entry = cache[setId][i];
+    		if(entry.valid && entry.key.equals(key)){
+    			entry.valid = false;
+    			entryQueue[setId].remove(entry);
+    		}
+    	}
     }
 
     /**
@@ -83,7 +162,7 @@ public class KVCache implements KeyValueInterface {
      */
     public Lock getLock(String key) {
         // implement me
-        return null;
+        return cacheLock[this.getSetId(key)];
     }
 
     /**
@@ -102,12 +181,54 @@ public class KVCache implements KeyValueInterface {
      */
     public String toXML() {
         // implement me
-        return null;
+    	try {
+			DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document doc = builder.newDocument();
+			Element KVCache = doc.createElement("KVCache");
+			doc.appendChild(KVCache);
+			for(int i = 0; i < this.numSets; i++){
+				Element Set = doc.createElement("Set");
+				Set.setAttribute("Id", "" + i);
+				KVCache.appendChild(Set);
+				for(int j = 0; j < this.maxElemsPerSet; j++){
+					Entry entry = cache[i][j];
+					if(entry.valid){
+						Element CacheEntry = doc.createElement("CacheEntry");
+						CacheEntry.setAttribute("isReferenced", ""+entry.referenceBit);
+						Element Key = doc.createElement("Key");
+						Element Value = doc.createElement("Value");
+						Key.appendChild(doc.createTextNode(entry.key));
+						Value.appendChild(doc.createTextNode(entry.value));
+						CacheEntry.appendChild(Key);
+						CacheEntry.appendChild(Value);
+					}
+				}
+			}
+			
+			return KVMessage.printDoc(doc);
+		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+			return null;
+		}
     }
 
     @Override
     public String toString() {
         return this.toXML();
+    }
+    
+    private class Entry{
+    	public String key;
+    	public String value;
+    	public boolean referenceBit;
+    	public boolean valid;
+    	
+    	public Entry(){
+    		this.valid = false;
+    		this.referenceBit = false;
+    		this.key = "";
+    		this.value = "";
+    	}
     }
 
 }
