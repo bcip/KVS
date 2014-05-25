@@ -1,6 +1,7 @@
 .classpath
 .project
 .log*
+.class
 bin/
 out/
 testreport/
