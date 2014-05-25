@@ -31,7 +31,7 @@ public class ServerClientHandler implements NetworkHandler {
      */
     public ServerClientHandler(KVServer kvServer, int connections) {
         this.kvServer = kvServer;
-        this.threadPool = new ThreadPool(connections);
+        threadPool = new ThreadPool(connections);
     }
 
     /**
@@ -42,12 +42,13 @@ public class ServerClientHandler implements NetworkHandler {
      */
     @Override
     public void handle(Socket client) {
-    	try{
-    		threadPool.addJob(new ClientHandler(client));
-    	}
-    	catch(Exception e){
-    		//ignore
-    	}
+        ClientHandler handler = new ClientHandler(client);
+        try {
+            threadPool.addJob(handler);
+        }
+        catch(InterruptedException ie) {
+            //ignore the error
+        }
     }
 
     /**
@@ -73,21 +74,47 @@ public class ServerClientHandler implements NetworkHandler {
          */
         @Override
         public void run() {
-        	KVMessage response = null;
-        	try{
-        		KVMessage request = new KVMessage(client);
-        		//TODO
-        	}
-        	catch(KVException e){
-        		response = e.getKVMessage();
-        	}
-        	
-        	try{
-        		response.sendMessage(client);
-        	}
-        	catch(Exception e){
-        		//ignore
-        	}
+            KVMessage response = new KVMessage(KVConstants.RESP);
+            try {
+                KVMessage message = new KVMessage(client);
+                if(message.getMsgType().equals(KVConstants.PUT_REQ)) {
+                    kvServer.put(message.getKey(), message.getValue());
+                    response.setMessage(KVConstants.SUCCESS);
+                }
+                else if(message.getMsgType().equals(KVConstants.GET_REQ)) {
+                    String value = kvServer.get(message.getKey());
+                    response.setValue(value);
+                    response.setKey(message.getKey());
+                }
+                else if(message.getMsgType().equals(KVConstants.DEL_REQ)) {
+                    kvServer.del(message.getKey());
+                    response.setMessage(KVConstants.SUCCESS);
+                }
+                else throw new KVException(KVConstants.ERROR_INVALID_FORMAT);
+            }
+            catch(KVException e)
+            {
+//            	System.out.println("e.message = " + e.getKVMessage().getMessage());
+                response.setKey(null);
+                response.setValue(null);
+                response.setMessage(e.getKVMessage().getMessage());
+//                System.out.println("KVException: " + response.getMessage());
+            }
+            finally
+            {
+            	try {
+                response.sendMessage(client);
+            	}
+            	catch (Exception e){
+            		
+            	}
+            }
+            try{
+            	client.close();
+            } catch (Exception e){
+            	
+            }
+            
         }
     }
 

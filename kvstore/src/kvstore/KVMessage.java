@@ -127,7 +127,8 @@ public class KVMessage implements Serializable {
 							KVConstants.ERROR_INVALID_FORMAT));
 				}
 			} else if (this.msgType.equals(KVConstants.RESP)) {
-				if (Key != null || Value != null || Message == null) {
+				if (!((Key != null && Value != null && Message == null) ||
+						(Key == null && Value == null && Message != null))) {
 					throw new KVException(new KVMessage(KVConstants.RESP,
 							KVConstants.ERROR_INVALID_FORMAT));
 				}
@@ -198,7 +199,12 @@ public class KVMessage implements Serializable {
 			} else if (this.msgType.equals(KVConstants.DEL_REQ)) {
 				shouldKey = true;
 			} else if (this.msgType.equals(KVConstants.RESP)) {
-				shouldMessage = true;
+				if(this.message != null)
+					shouldMessage = true;
+				else{
+					shouldValue = true;
+					shouldKey = true;
+				}
 			} else {
 				throw new KVException(new KVMessage(KVConstants.RESP,
 						KVConstants.ERROR_INVALID_FORMAT));
@@ -279,6 +285,7 @@ public class KVMessage implements Serializable {
 			outstream.flush();
 			sock.shutdownOutput();
 			
+			System.out.println(outputMessage);
 			
 			
 		} catch (IOException e) {

@@ -24,7 +24,7 @@ public class SocketServer {
      * Construct a SocketServer with a ServerSocket listening on a free port.
      */
     public SocketServer(String hostname) {
-        this(hostname, 8080);
+        this(hostname, 8022); // change for the SocketServerTest.java 
     }
 
     /**
@@ -63,7 +63,7 @@ public class SocketServer {
      * @throws IOException if unable create and bind a ServerSocket
      */
     public void connect() throws IOException {
-        this.server = new ServerSocket(port);
+        server = new ServerSocket(port);
     }
 
     /**
@@ -76,7 +76,7 @@ public class SocketServer {
      */
     public void start() throws IOException {
         while (!stopped) {
-            Socket socket = this.server.accept();
+            Socket socket = server.accept();
             handler.handle(socket);
         }
         try {
