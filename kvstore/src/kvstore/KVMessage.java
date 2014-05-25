@@ -148,7 +148,7 @@ public class KVMessage implements Serializable {
 			throw new KVException(exceptMessage);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 			KVMessage exceptMessage = new KVMessage(KVConstants.RESP,
 					KVConstants.ERROR_COULD_NOT_RECEIVE_DATA);
 			throw new KVException(exceptMessage);
@@ -274,10 +274,11 @@ public class KVMessage implements Serializable {
 			
 			String outputMessage = this.toXML();
 			OutputStream outstream = sock.getOutputStream();
-			byte[] sendData = outputMessage.getBytes();
+			byte[] sendData = outputMessage.getBytes("UTF-8");
 			outstream.write(sendData);
 			outstream.flush();
 			sock.shutdownOutput();
+			
 			
 			
 		} catch (IOException e) {

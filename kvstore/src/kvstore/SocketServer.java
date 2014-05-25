@@ -24,7 +24,7 @@ public class SocketServer {
      * Construct a SocketServer with a ServerSocket listening on a free port.
      */
     public SocketServer(String hostname) {
-        this(hostname, 0);
+        this(hostname, 8080);
     }
 
     /**
