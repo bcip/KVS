@@ -2,7 +2,10 @@ package kvstore;
 
 import static kvstore.KVConstants.*;
 
+import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 /**
  * Client API used to issue requests to key-value server.
@@ -28,10 +31,23 @@ public class KVClient implements KeyValueInterface {
      *
      * @return Socket connected to server
      * @throws KVException if unable to create or connect socket
+     * @throws SocketException 
      */
     private Socket connectHost() throws KVException {
         // implement me
-        return null;
+		try {
+			Socket socket = new Socket(this.server, this.port);
+			socket.setSoTimeout(TIMEOUT_MILLISECONDS);
+	        return socket;
+		} catch (UnknownHostException e1){
+			KVMessage unMsg = new KVMessage(RESP);
+			unMsg.setMessage(ERROR_COULD_NOT_CREATE_SOCKET);
+			throw new KVException(unMsg);
+		} catch (IOException e2) {
+			KVMessage ioMsg = new KVMessage(RESP);
+			ioMsg.setMessage(ERROR_COULD_NOT_CONNECT);
+			throw new KVException(ioMsg);
+		}
     }
 
     /**
@@ -39,9 +55,20 @@ public class KVClient implements KeyValueInterface {
      * Best effort, ignores error since the response has already been received.
      *
      * @param  sock Socket to be closed
+     * @throws KVException 
      */
-    private void closeHost(Socket sock) {
+    private void closeHost(Socket sock) throws KVException {
         // implement me
+    	if(sock == null){
+    		return;
+    	}
+    	try {
+			sock.close();
+		} catch (IOException e) {
+			KVMessage ioMsg = new KVMessage(RESP);
+			ioMsg.setMessage(ERROR_COULD_NOT_CLOSE);
+			throw new KVException(ioMsg);
+		}
     }
 
     /**
@@ -53,6 +80,24 @@ public class KVClient implements KeyValueInterface {
     @Override
     public void put(String key, String value) throws KVException {
         // implement me
+		try {
+			Socket socket = connectHost();
+			KVMessage putMsg = new KVMessage(PUT_REQ);
+			putMsg.setKey(key);
+			putMsg.setValue(value);
+			putMsg.sendMessage(socket);
+			KVMessage respMsg = new KVMessage(socket);
+			closeHost(socket);
+			if(!respMsg.getMessage().equals("Success")){
+				KVMessage excpMsg = new KVMessage(RESP);
+				excpMsg.setMessage(respMsg.getMessage());
+				throw new KVException(excpMsg);
+			}
+		} catch (KVException e) {
+			KVMessage ioMsg = new KVMessage(RESP);
+			ioMsg.setMessage(ERROR_COULD_NOT_SEND_DATA);
+			throw new KVException(ioMsg);
+		}
     }
 
     /**
@@ -65,7 +110,25 @@ public class KVClient implements KeyValueInterface {
     @Override
     public String get(String key) throws KVException {
         // implement me
-        return null;
+    	try{
+    		Socket socket = connectHost();
+    		KVMessage getMsg = new KVMessage(GET_REQ);
+    		getMsg.setKey(key);
+    		getMsg.sendMessage(socket);
+    		KVMessage respMsg = new KVMessage(socket);
+    		closeHost(socket);
+    		if(respMsg.getValue() == null){
+    			KVMessage excpMsg = new KVMessage(RESP);
+    			excpMsg.setMessage(respMsg.getMessage());
+    			throw new KVException(excpMsg);
+    		}else{
+    			return respMsg.getValue();
+    		}
+    	}catch (KVException e){
+    		KVMessage ioMsg = new KVMessage(RESP);
+    		ioMsg.setMessage(ERROR_COULD_NOT_RECEIVE_DATA);
+    		throw new KVException(ioMsg);
+    	}
     }
 
     /**
@@ -77,6 +140,23 @@ public class KVClient implements KeyValueInterface {
     @Override
     public void del(String key) throws KVException {
         // implement me
+    	try{
+    		Socket socket = connectHost();
+    		KVMessage delMsg = new KVMessage(DEL_REQ);
+    		delMsg.setKey(key);
+    		delMsg.sendMessage(socket);
+    		KVMessage respMsg = new KVMessage(socket);
+    		closeHost(socket);
+    		if(!respMsg.getMessage().equals("Success")){
+    			KVMessage excpMsg = new KVMessage(RESP);
+    			excpMsg.setMessage(respMsg.getMessage());
+    			throw new KVException(excpMsg);
+    		}
+    	}catch (KVException e){
+    		KVMessage ioMsg = new KVMessage(RESP);
+    		ioMsg.setMessage(ERROR_COULD_NOT_SEND_DATA);
+    		throw new KVException(ioMsg);
+    	}
     }
 
 

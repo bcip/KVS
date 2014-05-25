@@ -46,6 +46,13 @@ public class KVConstants {
         "Network Error: Could not connect";
 
     /**
+     * Error message used if an IOException arises while trying to close
+     * a socket.
+     */
+    public static final String ERROR_COULD_NOT_CLOSE = 
+    		"Network Error: Could not close";
+    
+    /**
      * Error message used when a SocketTimeoutException is thrown while blocked
      * on a read of the InputStream of a socket.
      */
