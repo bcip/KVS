@@ -76,7 +76,30 @@ public class ServerClientHandler implements NetworkHandler {
         	KVMessage response = null;
         	try{
         		KVMessage request = new KVMessage(client);
-        		//TODO
+        		if(request.getMsgType().equals(PUT_REQ)){
+        			String key = request.getKey();
+        			String value = request.getValue();
+        			kvServer.put(key, value);
+        			
+        			response = new KVMessage(RESP, SUCCESS);
+        		}
+        		else if(request.getMsgType().equals(GET_REQ)){
+        			String key = request.getKey();
+        			String value = kvServer.get(key);
+        			
+        			response = new KVMessage(RESP);
+        			response.setKey(key);
+        			response.setValue(value);
+        		}
+        		else if(request.getMsgType().equals(DEL_REQ)){
+        			String key = request.getKey();
+        			kvServer.del(key);
+        			
+        			response = new KVMessage(RESP, SUCCESS);
+        		}
+        		else{
+        			throw new KVException(ERROR_INVALID_FORMAT);
+        		}
         	}
         	catch(KVException e){
         		response = e.getKVMessage();
