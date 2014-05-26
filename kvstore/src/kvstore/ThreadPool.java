@@ -1,13 +1,14 @@
 package kvstore;
 
-import java.util.ArrayList;
+import java.util.concurrent.BlockingQueue;
 
 
 public class ThreadPool {
 
     /* Array of threads in the threadpool */
     private Thread threads[];
-    private ArrayList<Runnable> tasks;
+    private BlockingQueue<Runnable> jobQueue;
+
 
     /**
      * Constructs a Threadpool with a certain number of threads.
@@ -16,11 +17,10 @@ public class ThreadPool {
      */
     public ThreadPool(int size) {
         threads = new Thread[size];
-        tasks = new ArrayList<Runnable>();
-        for(int i = 0; i < size; i ++)
-        {
-            threads[i] = new WorkerThread(this);
-            threads[i].start();
+
+        for(int i = 0; i < size; i++){
+        	threads[i] = new WorkerThread(this);
+        	threads[i].start();
         }
     }
 
@@ -34,10 +34,7 @@ public class ThreadPool {
      *         state. Your implementation may or may not actually throw this.
      */
     public void addJob(Runnable r) throws InterruptedException {
-        synchronized(tasks)
-        {
-            tasks.add(r);
-        }
+        jobQueue.put(r);
     }
 
     /**
@@ -47,12 +44,7 @@ public class ThreadPool {
      *         state. Your implementation may or may not actually throw this.
      */
     private Runnable getJob() throws InterruptedException {
-        synchronized(tasks) {
-            if(!tasks.isEmpty()) {
-                return tasks.remove(0);
-            }
-        }
-        return null;
+        return jobQueue.take();
     }
 
     /**
@@ -76,12 +68,12 @@ public class ThreadPool {
          */
         @Override
         public void run() {
-            while(true) {
+            while(true){
             	try{
-            		Runnable r = getJob();
-            		if(r != null) r.run();
-            	} catch (Exception e){
-            		
+            		threadPool.getJob().run();
+            	}
+            	catch(Exception e){
+            		//ignore
             	}
             }
         }
