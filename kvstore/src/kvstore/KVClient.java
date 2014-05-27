@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 
 /**
  * Client API used to issue requests to key-value server.
- */
+ */	
 public class KVClient implements KeyValueInterface {
 
     private String server;
@@ -90,7 +90,7 @@ public class KVClient implements KeyValueInterface {
         // implement me
 		try {
 			checkKey(key);
-			checkKey(value);
+			checkValue(value);
 			
 			Socket socket = connectHost();
 			KVMessage putMsg = new KVMessage(PUT_REQ);
