@@ -104,12 +104,13 @@ public class ServerClientHandler implements NetworkHandler {
         	catch(KVException e){
         		response = e.getKVMessage();
         	}
-        	
-        	try{
-        		response.sendMessage(client);
-        	}
-        	catch(Exception e){
-        		//ignore
+        	finally{
+        		try{
+        			response.sendMessage(client);
+        		}
+        		catch(Exception e){
+        			//ignore
+        		}
         	}
         }
     }
