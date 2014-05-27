@@ -75,6 +75,7 @@ public class SocketServer {
      *         listening for or servicing requests
      */
     public void start() throws IOException {
+    	int i = 0;
         while (!stopped) {
             Socket socket = this.server.accept();
             handler.handle(socket);

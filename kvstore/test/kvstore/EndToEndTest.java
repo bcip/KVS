@@ -1,8 +1,6 @@
 package kvstore;
 
-import static kvstore.KVConstants.PUT_REQ;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
@@ -11,6 +9,7 @@ public class EndToEndTest extends EndToEndTemplate {
     @Test
     public void testPutGetDel() throws KVException {
     	
+    	System.out.println("Test Put Get Del.");
     	try{
     	System.out.println("testing put");
 		client.put("fuzzy", "wuzzy");
@@ -63,4 +62,5 @@ public class EndToEndTest extends EndToEndTemplate {
 			assertEquals("Data Error: Key does not exist", e.getKVMessage().getMessage());
 		}
     }
+    
 }

@@ -8,6 +8,7 @@ import org.junit.*;
 public class EndToEndTemplate {
 
     KVClient client;
+	KVClient another_client;
     ServerRunner serverRunner;
 
     @Before
@@ -15,11 +16,15 @@ public class EndToEndTemplate {
         String hostname = InetAddress.getLocalHost().getHostAddress();
 
         SocketServer ss = new SocketServer(hostname, 8080);
-        ss.addHandler(new ServerClientHandler(new KVServer(100, 10)));
+        KVServer kvs = new KVServer(100, 10);
+        ServerClientHandler sch = new ServerClientHandler(kvs, 2); 
+        ss.addHandler(sch);
+        
         serverRunner = new ServerRunner(ss, "server");
         serverRunner.start();
 
         client = new KVClient(hostname, 8080);
+        another_client = new KVClient(hostname, 8080);
     }
 
     @After
