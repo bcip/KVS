@@ -114,19 +114,7 @@ over the network using \texttt{socket}.
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
-\begin{enumerate}
-	\item Test \texttt{put}:
-		\begin{compactitem}
-			\item Put and get a key-value pair and check equality
-			\item Overwrite and get above key-value and check correctness of the overwrite
-		\end{compactitem}
-	\item Test \texttt{get}:
-		\begin{compactitem}
-			\item Get a key-value pair and check whether it is what we want
-			\item Get a non-exist key-value pair and make sure it cause exception
-		\end{compactitem}
-	\item Test \texttt{del}: Del a key and make sure it is removed.
-\end{enumerate}
+
 
 \section{Implement of \texttt{KVMessage}}
 \subsection{Overview}
@@ -203,11 +191,103 @@ In this task, we are supposed to implement the \texttt{KVMessage} class with \te
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
-\begin{compactitem}
-	\item Test all kinds of valid requests and check whether the \texttt{KVMessage} parses and transforms \texttt{toXML} correctly
-	\item Test requests with invalid format and check whether throw the correct \texttt{KVException}
-\end{compactitem}
+The test code is here.
+\begin{lstlisting}[language=java]
+	@Test
+    public void successfullyParsesPutReq() throws KVException {
+        setupSocket("putreq.txt");
+        KVMessage kvm = new KVMessage(sock);
+        assertNotNull(kvm);
+        assertEquals(PUT_REQ, kvm.getMsgType());
+        assertNull(kvm.getMessage());
+        assertNotNull(kvm.getKey());
+        assertNotNull(kvm.getValue());
+    }
 
+    @Test
+    public void successfullyParsesPutResp() throws KVException {
+        setupSocket("putresp.txt");
+        KVMessage kvm = new KVMessage(sock);
+        assertNotNull(kvm);
+        assertEquals(RESP, kvm.getMsgType());
+        assertTrue(SUCCESS.equalsIgnoreCase(kvm.getMessage()));
+        assertNull(kvm.getKey());
+        assertNull(kvm.getValue());
+    }
+    
+    @Test
+    public void successfullyParsesGetReq() throws KVException {
+    	setupSocket("getreq.txt");
+        KVMessage kvm = new KVMessage(sock);
+        assertNotNull(kvm);
+        assertEquals(GET_REQ, kvm.getMsgType());
+        assertNull(kvm.getMessage());
+        assertNotNull(kvm.getKey());
+        assertNull(kvm.getValue());
+    }
+    
+    @Test
+    public void successfullyParsesGetResp() throws KVException {
+        setupSocket("getresp.txt");
+        KVMessage kvm = new KVMessage(sock);
+        assertNotNull(kvm);
+        assertEquals(RESP, kvm.getMsgType());
+        assertNull(kvm.getMessage());
+        assertNotNull(kvm.getKey());
+        assertNotNull(kvm.getValue());
+    }
+    
+    @Test
+    public void unsuccessfullyParsesPutReq() throws KVException {
+        setupSocket("invalidputreq.txt");
+        try{
+        	KVMessage kvm = new KVMessage(sock);
+        	assertNotNull(kvm);
+            assertEquals(PUT_REQ, kvm.getMsgType());
+            assertNull(kvm.getMessage());
+            assertNotNull(kvm.getKey());
+            assertNotNull(kvm.getValue());
+        }catch(KVException e){
+        	assertEquals(RESP, e.getKVMessage().getMsgType());
+        	assertEquals(ERROR_INVALID_FORMAT, e.getKVMessage().getMessage());
+        }
+    }
+    
+    @Test
+    public void successfullyToXml() throws KVException {
+    	setupSocket("putreq.txt");
+    	KVMessage kvm = new KVMessage(sock);
+    	assertNotNull(kvm);
+    	String kvmToXml = kvm.toXML();
+    	Socket stringSock = mock(Socket.class);
+    	try {
+            doNothing().when(stringSock).setSoTimeout(anyInt());
+            when(stringSock.getInputStream()).thenReturn(new StringBufferInputStream(kvmToXml));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    	KVMessage kvm1 = new KVMessage(stringSock);
+    	assertEquals(kvm.getMsgType(), kvm1.getMsgType());
+    	assertEquals(kvm.getMessage(), kvm1.getMessage());
+    	assertEquals(kvm.getKey(), kvm1.getKey());
+    	assertEquals(kvm.getValue(), kvm1.getValue());
+    }
+\end{lstlisting}
+Test constructor with \texttt{putreq,putresp,invalidputreq,getreq,getresp} XML and also test \texttt{toXml} with \texttt{putreq} XML file.
+
+And the result is as follows:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.KVMessageTest
+    [junit] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.313 sec
+    [junit] 
+    [junit] Testcase: successfullyParsesGetReq took 0.198 sec
+    [junit] Testcase: successfullyParsesGetResp took 0.003 sec
+    [junit] Testcase: unsuccessfullyParsesPutReq took 0.003 sec
+    [junit] Testcase: successfullyParsesPutReq took 0.003 sec
+    [junit] Testcase: successfullyToXml took 0.09 sec
+    [junit] Testcase: successfullyParsesPutResp took 0.003 sec
+\end{lstlisting}
 
 \section{Implement of \texttt{KVCache}}
 \subsection{Overview}
@@ -301,24 +381,48 @@ For method \texttt{put}:
     \end{algorithmic}
 \end{algorithm}
 \subsection{Test}
-\begin{enumerate}
-\item Test \texttt{get}:
-\begin{compactitem}
-\item using \texttt{get} with a key in the cache set. See if the value gets is correct.
-\item using \texttt{get} with a key not in the set. See if the return value is null.
-\end{compactitem}
-\item Test \texttt{put}:
-\begin{compactitem}
-\item using \texttt{put} with a key already in the cache. Then see whether its value changes.
-\item using \texttt{put} with a key not in the cache when the set is not full. See whether the invalid entry is replaced with a new entry and whether the entry is at the end of \texttt{entryQueue}.
-\item using \texttt{put} with a key not in the cache when the set is full. Then see whether second-chance algorithm works.
-\end{compactitem}
-\item Test \texttt{del}:
-\begin{compactitem}
-\item using \texttt{del} with a key in the cache set. See if the entry is set invalid.
-\end{compactitem}
-\item Test \texttt{toXML}: just output it to see whether the output text is correct.
-\end{enumerate}
+The test code is as follows:
+\begin{lstlisting}[language=java]
+    @Test
+    public void singlePutAndGet() {
+        KVCache cache = new KVCache(1, 4);
+        cache.put("hello", "world");
+        assertEquals("world", cache.get("hello"));
+    }
+    
+    @Test
+    public void testPutGetDelWithSecondChance(){
+    	KVCache cache = new KVCache(1, 3);
+    	cache.put("k1", "k1");
+    	cache.put("k2", "k2");
+    	cache.put("k3", "k3");
+    	assertEquals("k1", cache.get("k1"));
+    	cache.put("k1", "k2");
+    	assertEquals("k2", cache.get("k1"));
+    	cache.put("k4", "k4");
+    	assertNotNull(cache.get("k1"));
+    	assertNull(cache.get("k2"));
+    	cache.put("k5", "k5");
+    	assertNull(cache.get("k3"));
+    	cache.del("k1");
+    	assertNull(cache.get("k1"));
+    	cache.put("k1", "k1");
+    	cache.put("k2", "k2");
+    	assertNull(cache.get("k4"));
+    }
+\end{lstlisting}
+
+And test second-chance algorithm in the second method.
+
+And the test result is as follows:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.KVCacheTest
+    [junit] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 sec
+    [junit] 
+    [junit] Testcase: testPutGetDelWithSecondChance took 0.003 sec
+    [junit] Testcase: singlePutAndGet took 0 sec
+\end{lstlisting}
 
 \section{Implement of \texttt{KVServer} and \texttt{KVStore}}
 \subsection{Overview}
@@ -402,19 +506,130 @@ Add a new \texttt{Lock storeLock} to protect \texttt{dataStore}.
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
-\begin{enumerate}
-	\item Test \texttt{KVServer}:
-		\begin{compactitem}
-			\item Test \texttt{put} and check whether write through correctly
-			\item Test \texttt{del} and check whether it is removed from dataCache, dataStore
-			\item Test \texttt{get}, return null if no such key, otherwise return value.
-		\end{compactitem}
-	\item Test \texttt{KVStore}:
-		\begin{compactitem}
-			\item Test the format of \texttt{toXML} and \texttt{dumpToFile}
-			\item Test \texttt{restoreFromFile} using both valid and invalid files
-		\end{compactitem}
-\end{enumerate}
+The test code for \texttt{KVServer} is as follows:
+\begin{lstlisting}[language=java]]
+    @Test
+    public void fuzzTest() throws KVException {
+        setupRealServer();
+        Random rand = new Random(8); // no reason for 8
+        Map<String, String> map = new HashMap<String, String>(10000);
+        String key, val;
+        for (int i = 0; i < 10000; i++) {
+            key = Integer.toString(rand.nextInt());
+            val = Integer.toString(rand.nextInt());
+            server.put(key, val);
+            map.put(key, val);
+        }
+        Iterator<Map.Entry<String, String>> mapIter = map.entrySet().iterator();
+        Map.Entry<String, String> pair;
+        while(mapIter.hasNext()) {
+            pair = mapIter.next();
+            assertTrue(server.hasKey(pair.getKey()));
+            assertEquals(pair.getValue(), server.get(pair.getKey()));
+            mapIter.remove();
+        }
+        assertTrue(map.size() == 0);
+    }
+
+    @Test
+    public void testNonexistentGetFails() {
+        setupRealServer();
+        try {
+            server.get("this key shouldn't be here");
+            fail("get with nonexistent key should error");
+        } catch (KVException e) {
+            assertEquals(KVConstants.RESP, e.getKVMessage().getMsgType());
+            assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+        }
+    }
+    
+    @Test
+    public void testPutGetDel() {
+    	setupRealServer();
+    	try{
+    		server.put("k1", "k1");
+    		assertEquals("k1", server.get("k1"));
+    		server.put("k1", "k2");
+    		assertEquals("k2", server.get("k1"));
+    		server.del("k1");
+    		assertNull(server.get("k1"));
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadPut1(){
+    	setupRealServer();
+    	try{
+    		server.put("k1", null);
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_INVALID_VALUE, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadPut2(){
+    	setupRealServer();
+    	try{
+    		server.put("", "a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_INVALID_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadGet1(){
+    	setupRealServer();
+    	try{
+    		server.get("a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadDel1(){
+    	setupRealServer();
+    	try{
+    		server.del("a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testHasKey(){
+    	setupRealServer();
+    	try{
+    		server.put("k1", "k1");
+    		assertEquals(server.hasKey("k1"), true);
+    		assertEquals(server.hasKey("k2"), false);
+    	}catch(KVException e){
+    		fail("should not access this");
+    	}
+    }
+\end{lstlisting}
+
+And we test \texttt{put, get, del} with valid and invalid params. The result is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.KVServerTest
+    [junit] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.091 sec
+    [junit] 
+    [junit] Testcase: testNonexistentGetFails took 0.222 sec
+    [junit] Testcase: testPutGetDel took 0.016 sec
+    [junit] Testcase: testBadPut1 took 0.006 sec
+    [junit] Testcase: testBadPut2 took 0.005 sec
+    [junit] Testcase: testBadGet1 took 0.006 sec
+    [junit] Testcase: testBadDel1 took 0.005 sec
+    [junit] Testcase: testHasKey took 0.008 sec
+    [junit] Testcase: fuzzTest took 6.645 sec
+\end{lstlisting}
 
 \section{Implement of \texttt{SocketServer}, \texttt{ServerClientHandler} and \texttt{ThreadPool}}
 \subsection{Overview}
