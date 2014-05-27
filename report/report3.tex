@@ -114,7 +114,148 @@ over the network using \texttt{socket}.
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
+The test code for \texttt{KVClient} is as follows:
+\begin{lstlisting}[language=java]
+@Test(timeout = 20000)
+    public void testInvalidKey() {
+    	System.out.println("Test put invalid key in KVClient.");
+        try {
+            client.put("", "bar");
+            fail("Didn't fail on empty key");
+        } catch (KVException kve) {
+            String errorMsg = kve.getKVMessage().getMessage();
+            assertEquals(errorMsg, ERROR_INVALID_KEY);
+            System.out.println("Ok.");
+        }
+    }
 
+    @Test(timeout = 20000)
+	public void testInvalidValue(){
+    	System.out.println("Test put invalid value in KVClient.");
+		try {
+			client.put("key", "");
+			fail("Didn't fail on empty value");
+		} catch (KVException kve) {
+			String errorMsg = kve.getKVMessage().getMessage();
+			assertEquals(errorMsg, ERROR_INVALID_VALUE);
+			System.out.println("Ok.");
+		}
+	}
+
+    @Test(timeout = 20000)
+	public void testInvalidPut(){
+    	System.out.println("Test invalid put in KVClient.");
+		try {
+			setupSocket("invalidputreq.txt");
+			client.put("key", null);
+			fail("Didn't fail on null value");
+		} catch (KVException kve) {
+			String errorMsg = kve.getKVMessage().getMessage();
+			assertEquals(errorMsg, ERROR_INVALID_VALUE);
+			System.out.println("Ok.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+    
+    @Test(timeout = 20000)
+	public void testErrorResp(){
+    	System.out.println("Test error response in KVClient.");
+		try {
+			setupSocket("putreq.txt");
+			setupSocket("errorresp.txt");
+			client.put("key", "value");
+			fail("Didn't fail on errorresp");
+		} catch (KVException kve) {
+			String errorMsg = kve.getKVMessage().getMessage();
+			assertEquals(errorMsg, "Error Message");
+			System.out.println("Ok.");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+    
+    @Test(timeout = 20000)
+    public void testSocket(){
+    	System.out.println("Test socket in KVClient.");
+    	try {
+    		System.out.println("Test get in KVClient.");
+    		setupSocket("getreq.txt");
+    		setupSocket("getresp.txt");
+    		assertEquals(client.get("key"), "value");
+    		System.out.println("Ok");
+    		
+    		System.out.println("Test put in KVClient.");
+    		setupSocket("putreq.txt");
+    		setupSocket("putresp.txt");
+    		client.put("key", "value");
+    		System.out.println("Ok");
+    		
+    		System.out.println("Test del in KVClient.");
+    		setupSocket("delreq.txt");
+    		setupSocket("delresp.txt");
+    		client.del("key");
+    		System.out.println("Ok");
+    	}catch (KVException kve) {
+    		String errorMsg = kve.getKVMessage().getMessage();
+    		System.out.println(errorMsg);
+    	}catch (Exception e) {
+    		e.printStackTrace();
+    	}
+    }
+\end{lstlisting}
+
+We test with all the files in \texttt{test-inputs}; And we also test client with invalid key or value. We test errors.
+
+And the result is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.KVClientTest
+    [junit] Test put invalid key in KVClient.
+    [junit] Ok.
+    [junit] Test put invalid value in KVClient.
+    [junit] Ok.
+    [junit] Test invalid put in KVClient.
+    [junit] Ok.
+    [junit] Test error response in KVClient.
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>key</Key>
+    [junit] <Value>value</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Ok.
+    [junit] Test socket in KVClient.
+    [junit] Test get in KVClient.
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>key</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Ok
+    [junit] Test put in KVClient.
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>key</Key>
+    [junit] <Value>value</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Ok
+    [junit] Test del in KVClient.
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="delreq">
+    [junit] <Key>key</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Ok
+    [junit] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.873 sec
+    [junit] 
+    [junit] Testcase: testInvalidKey took 0.073 sec
+    [junit] Testcase: testInvalidValue took 0.016 sec
+    [junit] Testcase: testInvalidPut took 0.202 sec
+    [junit] Testcase: testErrorResp took 0.354 sec
+    [junit] Testcase: testSocket took 0.074 sec
+\end{lstlisting}
 
 \section{Implement of \texttt{KVMessage}}
 \subsection{Overview}
@@ -629,6 +770,27 @@ runtest:
     [junit] Testcase: testBadDel1 took 0.005 sec
     [junit] Testcase: testHasKey took 0.008 sec
     [junit] Testcase: fuzzTest took 6.645 sec
+\end{lstlisting}
+
+And since the test for \texttt{KVServer} also test \texttt{KVStore}, we have the initial test code for \texttt{KVStore}
+
+\begin{lstlisting}[language=java]
+    @Test
+    public void putAndGetOneKey() throws KVException {
+        String key = "this is the key.";
+        String val = "this is the value.";
+        store.put(key, val);
+        assertEquals(val, store.get(key));
+    }
+\end{lstlisting}
+
+And the result is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.KVStoreTest
+    [junit] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 sec
+    [junit] 
+    [junit] Testcase: putAndGetOneKey took 0.003 sec
 \end{lstlisting}
 
 \section{Implement of \texttt{SocketServer}, \texttt{ServerClientHandler} and \texttt{ThreadPool}}
