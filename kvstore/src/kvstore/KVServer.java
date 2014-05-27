@@ -164,7 +164,16 @@ public class KVServer implements KeyValueInterface {
     public boolean hasKey(String key) throws KVException {
         // implement me
     	
-        return dataStore.get(key) != null;
+        try{
+        	dataStore.get(key);
+        	return true;
+        }catch(KVException e){
+        	if(KVConstants.ERROR_NO_SUCH_KEY.equals(e.getKVMessage().getMessage())){
+        		return false;
+        	}else{
+        		throw e;
+        	}
+        }
     }
 
     /** This method is purely for convenience and will not be tested. */

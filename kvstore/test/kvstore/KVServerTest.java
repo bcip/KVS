@@ -94,6 +94,76 @@ public class KVServerTest {
             assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
         }
     }
-
+    
+    @Test
+    public void testPutGetDel() {
+    	setupRealServer();
+    	try{
+    		server.put("k1", "k1");
+    		assertEquals("k1", server.get("k1"));
+    		server.put("k1", "k2");
+    		assertEquals("k2", server.get("k1"));
+    		server.del("k1");
+    		assertNull(server.get("k1"));
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadPut1(){
+    	setupRealServer();
+    	try{
+    		server.put("k1", null);
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_INVALID_VALUE, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadPut2(){
+    	setupRealServer();
+    	try{
+    		server.put("", "a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_INVALID_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadGet1(){
+    	setupRealServer();
+    	try{
+    		server.get("a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testBadDel1(){
+    	setupRealServer();
+    	try{
+    		server.del("a");
+    		fail();
+    	}catch(KVException e){
+    		assertEquals(KVConstants.ERROR_NO_SUCH_KEY, e.getKVMessage().getMessage());
+    	}
+    }
+    
+    @Test
+    public void testHasKey(){
+    	setupRealServer();
+    	try{
+    		server.put("k1", "k1");
+    		assertEquals(server.hasKey("k1"), true);
+    		assertEquals(server.hasKey("k2"), false);
+    	}catch(KVException e){
+    		fail("should not access this");
+    	}
+    }
 
 }
