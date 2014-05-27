@@ -874,4 +874,371 @@ runtest:
 	\end{algorithmic}
 \end{algorithm}
 \subsection{Test}
+The test code for \texttt{SocketServer}:
+\begin{lstlisting}[language=java]
+    @Test
+    public void serverCanConnect() throws IOException {
+        ss.connect();
+        assertEquals(localhostName, ss.getHostname());
+        assertTrue(ss.getPort() > 0 && ss.getPort() < 65536);
+        // the following is done simply to close the server socket.
+        ss.stop();
+        ss.start();
+    }
+\end{lstlisting}
+And the result for it is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.SocketServerTest
+    [junit] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 sec
+    [junit] 
+    [junit] Testcase: serverCanConnect took 0.005 sec
+\end{lstlisting}
+\section{EndToEndTest & MultiEndToEndTest}
+This is a integration test for Single-Server Key-Value Store. And there are some code changes in \texttt{EndToEndTemplate}:
+\begin{lstlisting}[language=java]
+    @Before
+    public void setUp() throws IOException, InterruptedException {
+        String hostname = InetAddress.getLocalHost().getHostAddress();
+
+        SocketServer ss = new SocketServer(hostname, 8080);
+        KVServer kvs = new KVServer(100, 10);
+        ServerClientHandler sch = new ServerClientHandler(kvs, 2); 
+        ss.addHandler(sch);
+        
+        serverRunner = new ServerRunner(ss, "server");
+        serverRunner.start();
+
+        client = new KVClient(hostname, 8080);
+        another_client = new KVClient(hostname, 8080);
+    }
+\end{lstlisting}
+\subsection{EndToEndTest}
+And the code for \texttt{EndToEndTest} is:
+\begin{lstlisting}[language=java]
+    @Test
+    public void testPutGetDel() throws KVException {
+    	
+    	System.out.println("Test Put Get Del.");
+    	try{
+    	System.out.println("testing put");
+		client.put("fuzzy", "wuzzy");
+		System.out.println("put ok");
+
+		System.out.println("putting (fuzzy, wuzzy) (again)");
+		client.put("fuzzy", "wuzzy");
+		System.out.println("ok");
+
+		System.out.println("putting (key2, value2)");
+		client.put("key2", "value2");
+		System.out.println("ok");
+
+		System.out.println("getting key=fuzzy");			
+		String value = client.get("fuzzy");					
+		System.out.println("returned: " + value);
+		assertEquals("wuzzy", value);
+
+		System.out.println("getting key=key2");			
+		String value2 = client.get("key2");					
+		System.out.println("returned: " + value2);
+		assertEquals("value2", value2);
+
+		System.out.println("putting (fuzzy, ursa)");
+		client.put("fuzzy", "ursa");
+		System.out.println("ok");
+
+		System.out.println("getting key=fuzzy");			
+		String value3 = client.get("fuzzy");					
+		System.out.println("returned: " + value3);
+		assertEquals("ursa", value3);
+
+		System.out.println("deleting key=key2");			
+		client.del("key2");					
+		System.out.println("ok");
+
+		System.out.println("deleting key=key2 (again), should throw exception");			
+		client.del("key2");		
+    	}catch(KVException e){
+    		assertEquals("Data Error: Key does not exist", e.getKVMessage().getMessage());
+    	}
+
+    	
+        client.put("foo", "bar");
+        assertEquals("bar", client.get("foo"));
+		client.del("foo");
+		try{
+			client.get("foo");
+		}catch(KVException e){
+			assertEquals("Data Error: Key does not exist", e.getKVMessage().getMessage());
+		}
+    }
+\end{lstlisting}
+The result for above is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.EndToEndTest
+    [junit] Test Put Get Del.
+    [junit] testing put
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>fuzzy</Key>
+    [junit] <Value>wuzzy</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] put ok
+    [junit] putting (fuzzy, wuzzy) (again)
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>fuzzy</Key>
+    [junit] <Value>wuzzy</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] ok
+    [junit] putting (key2, value2)
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>key2</Key>
+    [junit] <Value>value2</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] ok
+    [junit] getting key=fuzzy
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>fuzzy</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>fuzzy</Key>
+    [junit] <Value>wuzzy</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] returned: wuzzy
+    [junit] getting key=key2
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>key2</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>key2</Key>
+    [junit] <Value>value2</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] returned: value2
+    [junit] putting (fuzzy, ursa)
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>fuzzy</Key>
+    [junit] <Value>ursa</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] ok
+    [junit] getting key=fuzzy
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>fuzzy</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>fuzzy</Key>
+    [junit] <Value>ursa</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] returned: ursa
+    [junit] deleting key=key2
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="delreq">
+    [junit] <Key>key2</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] ok
+    [junit] deleting key=key2 (again), should throw exception
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="delreq">
+    [junit] <Key>key2</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Data Error: Key does not exist</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>foo</Key>
+    [junit] <Value>bar</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>foo</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>foo</Key>
+    [junit] <Value>bar</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="delreq">
+    [junit] <Key>foo</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>foo</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Data Error: Key does not exist</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.488 sec
+    [junit] 
+    [junit] Testcase: testPutGetDel took 10.474 sec
+\end{lstlisting}
+\subsection{MultiEndToEndTest}
+The code for \texttt{MultiEndToEndTest} is:
+\begin{lstlisting}[language=java]
+	@Test
+    public void testMultiClients() {
+    	System.out.println("Test Multi Clients Case.");
+    	int len = 2;
+    	String[] keys = new String[len];
+    	String[] vals = new String[len];
+    	for(int i = 0; i < 2; i++){
+    		keys[i] = "key" + (new Integer(i)).toString();
+    		vals[i] = "val" + (new Integer(i)).toString();
+    	}
+    	
+    	try{
+    		client.put(keys[0], vals[0]);
+    		assertEquals(vals[0], another_client.get(keys[0]));
+    		another_client.put(keys[0], vals[1]);
+    		assertEquals(vals[1], client.get(keys[0]));
+    		another_client.del(keys[0]);
+    		assertNull(client.get(keys[0]));
+    		client.del(keys[0]);
+    	} catch (KVException kve) {
+    		assertEquals("Data Error: Key does not exist", kve.getKVMessage().getMessage());
+    	}
+    	System.out.println("Multi Clients Test End.");
+    }
+\end{lstlisting}
+
+The result for it is:
+\begin{lstlisting}
+runtest:
+    [junit] Testsuite: kvstore.MultiEndToEndTest
+    [junit] Test Multi Clients Case.
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>key0</Key>
+    [junit] <Value>val0</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>key0</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>key0</Key>
+    [junit] <Value>val0</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="putreq">
+    [junit] <Key>key0</Key>
+    [junit] <Value>val1</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>key0</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Key>key0</Key>
+    [junit] <Value>val1</Value>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="delreq">
+    [junit] <Key>key0</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Success</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="getreq">
+    [junit] <Key>key0</Key>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    [junit] <KVMessage type="resp">
+    [junit] <Message>Data Error: Key does not exist</Message>
+    [junit] </KVMessage>
+    [junit] 
+    [junit] Multi Clients Test End.
+    [junit] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.429 sec
+    [junit] 
+    [junit] Testcase: testMultiClients took 10.415 sec
+\end{lstlisting}
 \end{document}
